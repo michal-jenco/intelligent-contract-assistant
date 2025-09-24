@@ -6,13 +6,22 @@
 #  Copyright (c) 2025 Michal Jenčo
 
 
+from dotenv import load_dotenv
+import os
+import openai
+
 from pdf_ingest import PDFIngest
 from text_splitter import TextSplitter
+from vector_store import VectorStoreMaker
 
 
 if __name__ == '__main__':
+    load_dotenv()
+    api_key = os.getenv("OPENAI_API_KEY")
+
     pdf_ingest = PDFIngest()
     text_splitter = TextSplitter()
+    vector_store_maker = VectorStoreMaker()
 
     pages = pdf_ingest.get_pages()
 
@@ -28,3 +37,14 @@ if __name__ == '__main__':
 
     for i, chunk in enumerate(chunks):
         print(f"Chunk {i+1} contains {len(chunk)} characters.")
+
+    vector_store = vector_store_maker.get_vector_store(chunks)
+
+    if not vector_store:
+        exit()
+
+    query = "What is this document about?"
+    results = vector_store.similarity_search(query, k=3)
+
+    for i, r in enumerate(results):
+        print(f"Result {i + 1}: {r.page_content}\n")

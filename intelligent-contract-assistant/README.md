@@ -13,7 +13,7 @@ Accept a PDF upload via CLI or basic web interface.
 
 ✅ Use PyPDF2 or pdfplumber to extract text.
 
-Chunk the document into manageable pieces using LangChain's TextSplitter.
+✅ Chunk the document into manageable pieces using LangChain's TextSplitter.
 
 Vector Store Setup
 
