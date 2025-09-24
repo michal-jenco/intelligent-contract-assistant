@@ -11,7 +11,7 @@ Document Ingestion
 
 Accept a PDF upload via CLI or basic web interface.
 
-Use PyPDF2 or pdfplumber to extract text.
+✅ Use PyPDF2 or pdfplumber to extract text.
 
 Chunk the document into manageable pieces using LangChain's TextSplitter.
 
