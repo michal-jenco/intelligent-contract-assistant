@@ -8,7 +8,6 @@
 
 from dotenv import load_dotenv
 import os
-import openai
 
 from pdf_ingest import PDFIngest
 from text_splitter import TextSplitter
@@ -33,17 +32,18 @@ if __name__ == '__main__':
 
     chunks = text_splitter.get_chunks(full_text)
 
-    print(f"Split document into {len(chunks)} chunks.")
+    print(f"Split document into {len(chunks)} chunks.\n")
 
     for i, chunk in enumerate(chunks):
         print(f"Chunk {i+1} contains {len(chunk)} characters.")
+    print()
 
     vector_store = vector_store_maker.get_vector_store(chunks)
 
     if not vector_store:
         exit()
 
-    query = "What is this document about?"
+    query = "Who owns the IP?"
     results = vector_store.similarity_search(query, k=3)
 
     for i, r in enumerate(results):

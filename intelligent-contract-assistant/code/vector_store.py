@@ -19,6 +19,7 @@ class VectorStoreMaker:
 
         try:
             vectorstore = FAISS.from_texts(chunks, self.embeddings)
+        # ideally you want to catch specific OpenAI exceptions, but as a proof of concept this works
         except Exception as e:
             print(f"Unable to create a Vector Store, reason: {e}")
             return None

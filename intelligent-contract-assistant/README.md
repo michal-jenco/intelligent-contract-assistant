@@ -17,9 +17,9 @@ Accept a PDF upload via CLI or basic web interface.
 
 Vector Store Setup
 
-Use FAISS or Chroma to create an embedding store from the chunks.
+✅ Use FAISS or Chroma to create an embedding store from the chunks.
 
-Use OpenAIEmbeddings or similar (can be mocked if API is not available).
+✅ Use OpenAIEmbeddings or similar (can be mocked if API is not available).
 
 QA Interface
 
