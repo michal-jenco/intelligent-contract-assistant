@@ -25,9 +25,9 @@ QA Interface
 
 Implement a basic interface (CLI or Streamlit app) where the user can:
 
-Ask questions like "What is the termination clause?" or "Who owns the IP?"
+✅ Ask questions like "What is the termination clause?" or "Who owns the IP?"
 
-Get responses grounded in the uploaded document using RetrievalQA.
+✅ Get responses grounded in the uploaded document using RetrievalQA.
 
 Bonus (for higher difficulty)
 
