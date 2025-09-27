@@ -9,6 +9,11 @@
 from dotenv import load_dotenv
 import os
 
+from langchain.chains import create_retrieval_chain
+from langchain.chains.combine_documents import create_stuff_documents_chain
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_openai import ChatOpenAI
+
 from pdf_ingest import PDFIngest
 from text_splitter import TextSplitter
 from vector_store import VectorStoreMaker
@@ -43,8 +48,28 @@ if __name__ == '__main__':
     if not vector_store:
         exit()
 
-    query = "Who owns the IP?"
-    results = vector_store.similarity_search(query, k=3)
+    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+    retriever = vector_store.as_retriever()
 
-    for i, r in enumerate(results):
-        print(f"Result {i + 1}: {r.page_content}\n")
+
+    system_prompt = (
+        "Use the given context to answer the question. "
+        "If you don't know the answer, say you don't know. "
+        "Use three sentence maximum and keep the answer concise. "
+        "Context: {context}"
+    )
+    prompt = ChatPromptTemplate.from_messages(
+        [
+            ("system", system_prompt),
+            ("human", "{input}"),
+        ]
+    )
+
+    query = f"Summarize for me what the provided document talks about."
+
+    question_answer_chain = create_stuff_documents_chain(llm, prompt)
+    chain = create_retrieval_chain(retriever, question_answer_chain)
+
+    response = chain.invoke({"input": query})
+
+    print(response["answer"])

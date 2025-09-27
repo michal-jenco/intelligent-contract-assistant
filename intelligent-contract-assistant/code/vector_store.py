@@ -25,3 +25,6 @@ class VectorStoreMaker:
             return None
 
         return vectorstore
+
+    def get_embeddings(self):
+        return self.embeddings
