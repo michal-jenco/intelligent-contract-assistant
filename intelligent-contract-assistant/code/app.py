@@ -19,7 +19,6 @@ import streamlit as st
 from dotenv import load_dotenv
 import os
 import tempfile
-from random import randint
 
 from langchain.chains import create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
@@ -60,14 +59,14 @@ if __name__ == '__main__':
         pages = pdf_ingest.get_pages(input_file_path)
         st.success(f"The document contains {len(pages)} pages.")
 
-        # Step 2: Join full text
+        # Join full text
         full_text = "".join(pages)
 
-        # Step 3: Split into chunks
+        # Split into chunks
         chunks = text_splitter.get_chunks(full_text)
-        st.info(f"Split document into {len(chunks)} chunks.")
+        st.success(f"Split document into {len(chunks)} chunks.")
 
-        # Step 4: Build vector store
+        # Build vector store
         vector_store = vector_store_maker.get_vector_store(chunks)
         if not vector_store:
             st.error("Failed to create vector store.")
@@ -75,7 +74,7 @@ if __name__ == '__main__':
 
         retriever = vector_store.as_retriever()
 
-        # Step 5: Define LLM + retrieval chain
+        # Define LLM + retrieval chain
         llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
 
         system_prompt = (
