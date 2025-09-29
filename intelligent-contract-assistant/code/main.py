@@ -35,9 +35,10 @@ if __name__ == '__main__':
     pages = pdf_ingest.get_pages()
     fields = pdf_ingest.get_fields()
 
-    for field_name, value in fields.items():
-        field_value = value.get('/V', None)
-        print(field_name, ':', field_value)
+    if fields:
+        for field_name, value in fields.items():
+            field_value = value.get('/V', None)
+            print(field_name, ':', field_value)
 
     print(f"The document contains {len(pages)} pages.")
 

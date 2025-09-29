@@ -11,7 +11,7 @@ import PyPDF2
 
 class PDFIngest:
     def __init__(self):
-        self.default_pdf_path = f"../documents/NDA.pdf"
+        self.default_pdf_path = f"../documents/sample-service-agreement.pdf"
 
     def get_pages(self, file_path: str = None) -> list[str]:
         if not file_path:

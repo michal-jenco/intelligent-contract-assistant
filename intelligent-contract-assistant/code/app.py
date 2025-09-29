@@ -7,6 +7,7 @@
 
 
 import streamlit as st
+from streamlit_pdf_viewer import pdf_viewer
 from dotenv import load_dotenv
 import os
 import tempfile
@@ -34,6 +35,9 @@ if __name__ == '__main__':
     # File uploader
     uploaded_file = st.file_uploader("Upload a PDF document", type=["pdf"])
 
+    # PDF displayer
+    container_pdf, container_chat = st.columns([50, 50])
+
     # Save uploaded PDF as a temp file to be able to read from it, since this is a web app
     input_file_path = ""
     if uploaded_file:
@@ -43,8 +47,19 @@ if __name__ == '__main__':
         with open(input_file_path, "wb") as f:
             f.write(uploaded_file.getvalue())
 
+
     # Initialise all the PDF/AI/ML functionality
     with st.spinner("Processing document..."):
+        if uploaded_file:
+            binary_data = uploaded_file.getvalue()
+            pdf_viewer(
+                input=binary_data,
+                width=1000,
+                height=700,
+            )
+        else:
+            exit()
+
         pdf_ingest = PDFIngest()
         text_splitter = TextSplitter()
         vector_store_maker = VectorStoreMaker()
@@ -88,12 +103,19 @@ if __name__ == '__main__':
     # Query input
     st.subheader("Ask questions about the document:")
 
-    # Initialize session state for chat history
-    if "chat_history" not in st.session_state:
-        st.session_state.chat_history = []
+    intro_query = f"Summarize for me what the provided document talks about."
+
+    with st.spinner("Generating summary..."):
+        response = chain.invoke({"input": intro_query})
+    answer = response["answer"]
+    st.subheader(answer)
 
     # User input box
     user_query = st.text_input("Your question", placeholder="Type your question here and press Enter")
+
+    # Initialize session state for chat history
+    if "chat_history" not in st.session_state:
+        st.session_state.chat_history = []
 
     # Handle query
     if user_query:
