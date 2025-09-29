@@ -6,15 +6,6 @@
 #  Copyright (c) 2025 Michal Jenčo
 
 
-# ============================================================
-#  Project:     Intelligent Contract Assistant - Streamlit App
-#  Author:      Michal Jenčo
-#  Created:     2025
-#
-#  Copyright (c) 2025 Michal Jenčo
-# ============================================================
-
-
 import streamlit as st
 from dotenv import load_dotenv
 import os
@@ -43,6 +34,7 @@ if __name__ == '__main__':
     # File uploader
     uploaded_file = st.file_uploader("Upload a PDF document", type=["pdf"])
 
+    # Save uploaded PDF as a temp file to be able to read from it, since this is a web app
     input_file_path = ""
     if uploaded_file:
         temp_dir = tempfile.mkdtemp()
@@ -51,6 +43,7 @@ if __name__ == '__main__':
         with open(input_file_path, "wb") as f:
             f.write(uploaded_file.getvalue())
 
+    # Initialise all the PDF/AI/ML functionality
     with st.spinner("Processing document..."):
         pdf_ingest = PDFIngest()
         text_splitter = TextSplitter()
@@ -59,10 +52,9 @@ if __name__ == '__main__':
         pages = pdf_ingest.get_pages(input_file_path)
         st.success(f"The document contains {len(pages)} pages.")
 
-        # Join full text
         full_text = "".join(pages)
 
-        # Split into chunks
+        # Split full text into AI-manageable chunks
         chunks = text_splitter.get_chunks(full_text)
         st.success(f"Split document into {len(chunks)} chunks.")
 
@@ -75,7 +67,7 @@ if __name__ == '__main__':
         retriever = vector_store.as_retriever()
 
         # Define LLM + retrieval chain
-        llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+        llm = ChatOpenAI(model="gpt-4o-mini")
 
         system_prompt = (
             "Use the given context to answer the question. "
