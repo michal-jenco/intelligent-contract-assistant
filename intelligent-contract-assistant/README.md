@@ -43,3 +43,6 @@ README.md with setup instructions.
 Sample contract PDF and example queries.
 
 ### Optional: a Streamlit or Flask app demoing the functionality.
+
+
+MUST run python -m spacy download en_core_web_sm

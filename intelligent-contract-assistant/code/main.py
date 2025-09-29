@@ -17,6 +17,7 @@ from langchain_openai import ChatOpenAI
 from pdf_ingest import PDFIngest
 from text_splitter import TextSplitter
 from vector_store import VectorStoreMaker
+from ner import NamedEntityRecognizer
 
 
 # I used this file to implement and debug the functionality before porting it into streamlit
@@ -29,6 +30,7 @@ if __name__ == '__main__':
     pdf_ingest = PDFIngest()
     text_splitter = TextSplitter()
     vector_store_maker = VectorStoreMaker()
+    ner = NamedEntityRecognizer()
 
     pages = pdf_ingest.get_pages()
 
@@ -76,3 +78,9 @@ if __name__ == '__main__':
     response = chain.invoke({"input": query})
 
     print(response["answer"])
+    print()
+
+    entities = ner.get_entities(text=full_text)
+
+    for entity in entities:
+        print(f"{entity.text}, {entity.label_}")
