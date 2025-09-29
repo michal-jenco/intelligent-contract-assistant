@@ -7,7 +7,7 @@ Build a contract assistant tool that takes in a PDF contract (e.g. an NDA or ser
 ### 🧱 Requirements:
 #### Document Ingestion
 
-Accept a PDF upload via CLI or basic web interface.
+✅ Accept a PDF upload via CLI or basic web interface.
 
 ✅ Use PyPDF2 or pdfplumber to extract text.
 

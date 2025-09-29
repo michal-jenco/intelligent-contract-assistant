@@ -19,6 +19,9 @@ from text_splitter import TextSplitter
 from vector_store import VectorStoreMaker
 
 
+# I used this file to implement and debug the functionality before porting it into streamlit
+
+
 if __name__ == '__main__':
     load_dotenv()
     api_key = os.getenv("OPENAI_API_KEY")
