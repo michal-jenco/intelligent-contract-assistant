@@ -33,12 +33,19 @@ if __name__ == '__main__':
     ner = NamedEntityRecognizer()
 
     pages = pdf_ingest.get_pages()
+    fields = pdf_ingest.get_fields()
+
+    for field_name, value in fields.items():
+        field_value = value.get('/V', None)
+        print(field_name, ':', field_value)
 
     print(f"The document contains {len(pages)} pages.")
 
     full_text = ""
     for page in pages:
         full_text += page
+
+    # print(f"\n\n{full_text}\n\n")
 
     chunks = text_splitter.get_chunks(full_text)
 

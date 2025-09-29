@@ -25,3 +25,12 @@ class PDFIngest:
             for page in reader.pages:
                 pages.append(page.extract_text())
             return pages
+
+    def get_fields(self, file_path: str = None) -> dict:
+        if not file_path:
+            file_path = self.default_pdf_path
+
+        with open(file_path, 'rb') as pdf_file:
+            reader = PyPDF2.PdfReader(pdf_file)
+
+            return reader.get_fields()
