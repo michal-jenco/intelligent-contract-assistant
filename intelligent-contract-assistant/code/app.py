@@ -123,7 +123,11 @@ if __name__ == '__main__':
         st.subheader(summary)
 
     # User input box
-    user_query = st.text_input("Your question", placeholder="Type your question here and press Enter")
+    user_query = st.text_input(
+        "Your question",
+        placeholder="Type your question here and press Enter",
+        key="input_box",
+    )
 
     # Initialize session state for chat history
     if "chat_history" not in st.session_state:
