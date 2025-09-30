@@ -56,11 +56,33 @@ def init_ai(chunks: list):
 
 
 @st.cache_resource
-def generate_summary() -> str:
-    response = chain.invoke({"input": intro_query})
+def generate_summary(_chain) -> str:
+    response = _chain.invoke({"input": intro_query})
     answer = response["answer"]
 
     return answer
+
+
+def ingest_pdf() -> list[str]:
+    temp_dir = tempfile.mkdtemp()
+    input_file_path = os.path.join(temp_dir, uploaded_file.name)
+
+    with open(input_file_path, "wb") as f:
+        f.write(uploaded_file.getvalue())
+
+    # Show the PDF widget
+    binary_data = uploaded_file.getvalue()
+    pdf_viewer(input=binary_data, width=1000, height=700)
+
+    # Process document (non-UI logic)
+    pdf_ingest = PDFIngest()
+    text_splitter = TextSplitter()
+
+    pages = pdf_ingest.get_pages(input_file_path)
+    full_text = "".join(pages)
+    chunks = text_splitter.get_chunks(full_text)
+
+    return chunks
 
 
 if __name__ == '__main__':
@@ -76,26 +98,8 @@ if __name__ == '__main__':
     # File uploader
     uploaded_file = st.file_uploader("Upload a PDF document", type=["pdf"])
 
-    # --- UI handling outside cache ---
-
     if uploaded_file:
-        temp_dir = tempfile.mkdtemp()
-        input_file_path = os.path.join(temp_dir, uploaded_file.name)
-
-        with open(input_file_path, "wb") as f:
-            f.write(uploaded_file.getvalue())
-
-        # Show the PDF widget (not cached!)
-        binary_data = uploaded_file.getvalue()
-        pdf_viewer(input=binary_data, width=1000, height=700)
-
-        # Process document (non-UI logic)
-        pdf_ingest = PDFIngest()
-        text_splitter = TextSplitter()
-
-        pages = pdf_ingest.get_pages(input_file_path)
-        full_text = "".join(pages)
-        chunks = text_splitter.get_chunks(full_text)
+        chunks = ingest_pdf()
 
         # Initialize AI only once (cached)
         chain = init_ai(chunks)
@@ -103,6 +107,7 @@ if __name__ == '__main__':
     else:
         st.warning("Please upload a PDF to get started.")
         chain = None
+        exit()
 
     # PDF displayer
     container_pdf, container_chat = st.columns([50, 50])
@@ -114,7 +119,7 @@ if __name__ == '__main__':
 
     if chain:
         with st.spinner("Generating summary..."):
-            summary = generate_summary()
+            summary = generate_summary(chain)
         st.subheader(summary)
 
     # User input box
@@ -136,7 +141,7 @@ if __name__ == '__main__':
     # Display chat history
     if st.session_state.chat_history:
         st.markdown("### Conversation")
-        for i, entry in enumerate(st.session_state.chat_history, 1):
+        for i, entry in enumerate(st.session_state.chat_history[::-1], 1):
             st.markdown(f"**Q{i}:** {entry['question']}")
             st.markdown(f"**A{i}:** {entry['answer']}")
             st.markdown("---")
