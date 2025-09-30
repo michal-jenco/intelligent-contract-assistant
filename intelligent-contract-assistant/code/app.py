@@ -52,6 +52,9 @@ def init_ai(chunks: list):
     question_answer_chain = create_stuff_documents_chain(llm, prompt)
     chain = create_retrieval_chain(retriever, question_answer_chain)
 
+    # TODO: for some reason return_source_documents param doesnt exist here, evn tho I am on the newest langchain?
+    # chain = create_retrieval_chain(retriever, question_answer_chain, return_source_documents=True)
+
     return chain
 
 
@@ -133,11 +136,14 @@ if __name__ == '__main__':
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = []
 
+    sources = []
+
     # Handle query
     if user_query:
         with st.spinner("Thinking..."):
             response = chain.invoke({"input": user_query})
         answer = response["answer"]
+        sources = response["source_documents"]
 
         # Save to history
         st.session_state.chat_history.append({"question": user_query, "answer": answer})
@@ -149,3 +155,10 @@ if __name__ == '__main__':
             st.markdown(f"**Q{i}:** {entry['question']}")
             st.markdown(f"**A{i}:** {entry['answer']}")
             st.markdown("---")
+
+            st.write("### Sources")
+            for i, doc in enumerate(sources):
+                st.markdown(f"**Source {i}:**")
+                st.write(doc.page_content[:500])  # show only first 500 chars
+                if "source" in doc.metadata:
+                    st.caption(f"From: {doc.metadata['source']}")
