@@ -83,9 +83,9 @@ if __name__ == '__main__':
     question_answer_chain = create_stuff_documents_chain(llm, prompt)
     chain = create_retrieval_chain(retriever, question_answer_chain)
 
-    response = chain.invoke({"input": query})
+    response = chain.invoke({"query": query})
 
-    print(response["answer"])
+    print(response["result"])
     print()
 
     entities = ner.get_entities(text=full_text)

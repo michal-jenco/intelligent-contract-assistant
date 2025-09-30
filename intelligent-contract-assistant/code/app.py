@@ -16,6 +16,8 @@ from langchain.chains import create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
+from langchain.chains import RetrievalQA
+from langchain.prompts import PromptTemplate
 
 from pdf_ingest import PDFIngest
 from text_splitter import TextSplitter
@@ -24,7 +26,7 @@ from vector_store import VectorStoreMaker
 
 
 @st.cache_resource
-def init_ai(chunks: list):
+def init_ai(chunks: list[str]):
     """Initialize AI components (LLM, retriever, chain)."""
 
     vector_store_maker = VectorStoreMaker()
@@ -36,32 +38,29 @@ def init_ai(chunks: list):
     # Define LLM + retrieval chain
     llm = ChatOpenAI(model="gpt-4o-mini")
 
-    system_prompt = (
-        "Use the given context to answer the question. "
-        "If you don't know the answer, say you don't know. "
-        "Use three sentence maximum and keep the answer concise. "
-        "Context: {context}"
-    )
-    prompt = ChatPromptTemplate.from_messages(
-        [
-            ("system", system_prompt),
-            ("human", "{input}"),
-        ]
-    )
+    # Optional: tweak your prompt
+    prompt_template = """You are an assistant. Answer the question using the context below:
 
-    question_answer_chain = create_stuff_documents_chain(llm, prompt)
-    chain = create_retrieval_chain(retriever, question_answer_chain)
+    {context}
 
-    # TODO: for some reason return_source_documents param doesnt exist here, evn tho I am on the newest langchain?
-    # chain = create_retrieval_chain(retriever, question_answer_chain, return_source_documents=True)
+    Question: {question}
+    Answer:"""
+    prompt = PromptTemplate(template=prompt_template, input_variables=["context", "question"])
+
+    chain = RetrievalQA.from_chain_type(
+        llm=llm,
+        chain_type="stuff",  # or "map_reduce", "refine"
+        retriever=retriever,
+        return_source_documents=True  # this is what gives us the source docs
+    )
 
     return chain
 
 
 @st.cache_resource
 def generate_summary(_chain) -> str:
-    response = _chain.invoke({"input": intro_query})
-    answer = response["answer"]
+    response = _chain.invoke({"query": intro_query})
+    answer = response["result"]
 
     return answer
 
@@ -88,7 +87,7 @@ def ingest_pdf() -> list[str]:
     return chunks
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # Load API key from .env
     load_dotenv()
     api_key = os.getenv("OPENAI_API_KEY")
@@ -141,19 +140,19 @@ if __name__ == '__main__':
     # Handle query
     if user_query:
         with st.spinner("Thinking..."):
-            response = chain.invoke({"input": user_query})
-        answer = response["answer"]
+            response = chain.invoke({"query": user_query})
+        answer = response["result"]
         sources = response["source_documents"]
 
         # Save to history
-        st.session_state.chat_history.append({"question": user_query, "answer": answer})
+        st.session_state.chat_history.append({"question": user_query, "result": answer})
 
     # Display chat history
     if st.session_state.chat_history:
         st.markdown("### Conversation")
         for i, entry in enumerate(st.session_state.chat_history[::-1], 1):
-            st.markdown(f"**Q{i}:** {entry['question']}")
-            st.markdown(f"**A{i}:** {entry['answer']}")
+            st.markdown(f"**Q{i}:** {entry["question"]}")
+            st.markdown(f"**A{i}:** {entry["result"]}")
             st.markdown("---")
 
             st.write("### Sources")
@@ -161,4 +160,4 @@ if __name__ == '__main__':
                 st.markdown(f"**Source {i}:**")
                 st.write(doc.page_content[:500])  # show only first 500 chars
                 if "source" in doc.metadata:
-                    st.caption(f"From: {doc.metadata['source']}")
+                    st.caption(f"From: {doc.metadata["source"]}")
