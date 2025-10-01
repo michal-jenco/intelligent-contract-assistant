@@ -13,11 +13,9 @@ import os
 import tempfile
 
 from langchain.chains import create_retrieval_chain
-from langchain.chains.combine_documents import create_stuff_documents_chain
-from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 from langchain.chains import RetrievalQA
-from langchain.prompts import PromptTemplate
+from langchain.prompts import ChatPromptTemplate
 
 from pdf_ingest import PDFIngest
 from text_splitter import TextSplitter
@@ -38,24 +36,33 @@ def init_ai(chunks: list[str]):
     # Define LLM + retrieval chain
     llm = ChatOpenAI(model="gpt-4o-mini")
 
-    # Optional: tweak your prompt
-    prompt_template = """You are an assistant. Answer the question using the context below:
+    system_prompt = """
+        You are an assistant. Answer the question using the context below.
+        If you don't know the answer, say you don't know.
+        Use three sentences maximum and keep the answer concise.
 
-    {context}
+        Context: {context}
+        Question: {question}
 
-    Question: {question}
-    Answer:"""
-    prompt = PromptTemplate(template=prompt_template, input_variables=["context", "question"])
+        Answer:
+    """
+
+    prompt = ChatPromptTemplate.from_messages(
+        [
+            ("system", system_prompt),
+            ("human", "{question}"),
+        ]
+    )
 
     chain = RetrievalQA.from_chain_type(
         llm=llm,
-        chain_type="stuff",  # or "map_reduce", "refine"
+        chain_type="stuff",
         retriever=retriever,
-        return_source_documents=True  # this is what gives us the source docs
+        chain_type_kwargs={"prompt": prompt},
+        return_source_documents=True,
     )
 
     return chain
-
 
 @st.cache_resource
 def generate_summary(_chain) -> str:
