@@ -203,7 +203,12 @@ if __name__ == "__main__":
             st.write("### Sources")
             for src_idx, doc in enumerate(sources[0:num_sources], 1):
                 st.markdown(f"*Source {src_idx}:*")
-                source_text = sources[0] if isinstance(sources, list) else doc.page_content[:source_max_length]
+
+                if hasattr(doc, "page_content"):
+                    source_text = doc.page_content[:source_max_length]
+                else:
+                    source_text = sources
+
                 sources_full_string += f"{source_text}\n"
                 st.write(source_text)
 
