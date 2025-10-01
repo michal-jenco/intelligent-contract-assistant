@@ -31,7 +31,7 @@ Build a contract assistant tool that takes in a PDF contract (e.g. an NDA or ser
 
 Add a named entity recognition (NER) step to extract key fields like parties, dates, and monetary values.
 
-Implement a feedback mechanism so the assistant can improve answers over multiple interactions.
+✅ Implement a feedback mechanism so the assistant can improve answers over multiple interactions.
 
 ✅ Show source text excerpts alongside answers.
 
@@ -51,29 +51,19 @@ MUST run python -m spacy download en_core_web_sm
 1️⃣ Feedback Log (CSV)
 
 Purpose: Keep a complete record of all user interactions, whether positive or negative.
-
 Contents: Question, answer, sources, user rating, corrections (if any), file hash, timestamp.
 
 Use cases:
-
 Analyze trends (e.g., which questions often get negative feedback).
-
 Audit for quality or debugging.
-
 Build datasets for future fine-tuning or improving retrieval.
-
 Essentially, it’s a historical dataset — never “overwrites” anything.
 
 2️⃣ Corrections Store (JSON)
 
 Purpose: Keep a current memory of corrections that can directly improve answers in future interactions.
-
 Contents: Mapping of normalized question → corrected answer, file hash, timestamp.
-
 Use cases:
-
 When the same question comes up again, the assistant can override the model output or inject the correction into retrieval.
-
 Acts as real-time learning memory, so the assistant “remembers” user fixes.
-
 This is a live store, always read before generating an answer.
