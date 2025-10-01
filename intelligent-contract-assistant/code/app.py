@@ -148,14 +148,7 @@ if __name__ == "__main__":
             summary = generate_summary(chain)
         st.subheader(summary)
 
-    # User input box
-    user_question = st.text_input(
-        "Your question",
-        placeholder="Type your question here and press Enter",
-        key="input_box",
-    )
-
-    # Initialize session state for chat history
+    # Initialize session state
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = []
     if "question_history" not in st.session_state:
@@ -163,8 +156,19 @@ if __name__ == "__main__":
     if "feedback" not in st.session_state:
         st.session_state.feedback = []
 
+    # Container for chat messages
+    chat_container = st.container()
+
+    # Bottom input form
+    with st.form(key="chat_form", clear_on_submit=True):
+        user_question = st.text_input(
+            "Your question",
+            placeholder="Type your question here and press Enter",
+        )
+        submitted = st.form_submit_button("Send")
+
     # Handle query
-    if user_question and user_question not in st.session_state.question_history:
+    if submitted and user_question and user_question not in st.session_state.question_history:
         # Check corrections before retrieval
         correction_entry = feedback_handler.check_corrections(user_question)
 
@@ -187,9 +191,8 @@ if __name__ == "__main__":
         )
         st.session_state.question_history.append(user_question)
 
-    # Display chat history
-    if st.session_state.chat_history:
-        st.markdown("### Conversation")
+    # Display chat history inside the container
+    with chat_container:
         for qa_idx, entry in enumerate(st.session_state.chat_history, 1):
             question = entry["question"]
             answer = entry["result"]
@@ -198,23 +201,15 @@ if __name__ == "__main__":
             st.markdown(f"**Q{qa_idx}:** {question}")
             st.markdown(f"**A{qa_idx}:** {answer}")
 
-            sources_full_string = ""
-
             st.write("### Sources")
             for src_idx, doc in enumerate(sources[0:num_sources], 1):
                 st.markdown(f"*Source {src_idx}:*")
-
                 if hasattr(doc, "page_content"):
-                    source_text = doc.page_content[:source_max_length]
+                    st.write(doc.page_content[:source_max_length])
                 else:
-                    source_text = sources
-
-                sources_full_string += f"{source_text}\n"
-                st.write(source_text)
+                    st.write(doc)
 
             st.write("### Feedback")
-
-            # Stable keys per QA entry
             feedback_key = f"feedback_{qa_idx}"
             correction_key = f"correction_{qa_idx}"
             submit_key = f"submit_{qa_idx}"
@@ -226,7 +221,6 @@ if __name__ == "__main__":
                 horizontal=True,
             )
 
-            # Show text area only if "No" is selected
             if feedback_radio == "👎 No":
                 correction_text = st.text_area(
                     "Provide the correct answer:",
@@ -235,10 +229,8 @@ if __name__ == "__main__":
             else:
                 correction_text = ""
 
-            # Submit button per QA
             if st.button("Submit Feedback", key=submit_key):
-                feedback_handler.log_feedback(question, answer, sources_full_string, feedback_radio, correction_text)
-
+                feedback_handler.log_feedback(question, answer, sources, feedback_radio, correction_text)
                 if feedback_radio == "👎 No" and correction_text:
                     feedback_handler.save_correction(question, correction_text)
                 st.success("✅ Feedback saved!")
