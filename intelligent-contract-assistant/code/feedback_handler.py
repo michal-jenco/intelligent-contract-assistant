@@ -40,7 +40,7 @@ class FeedbackHandler:
                 datetime.now().isoformat(),
                 question,
                 answer,
-                "; ".join(sources),
+                sources,
                 feedback,
                 correction,
                 self.hash,

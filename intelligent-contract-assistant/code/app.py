@@ -8,6 +8,8 @@
 
 import streamlit as st
 import random
+
+from streamlit import feedback
 from streamlit_pdf_viewer import pdf_viewer
 from dotenv import load_dotenv
 import os
@@ -163,10 +165,18 @@ if __name__ == "__main__":
 
     # Handle query
     if user_question and user_question not in st.session_state.question_history:
-        with st.spinner("Thinking..."):
-            response = ask_ai(user_question)
-        answer = response["result"]
-        sources = response["source_documents"]
+        # Check corrections before retrieval
+        correction_entry = feedback_handler.check_corrections(user_question)
+
+        if correction_entry:
+            st.success("✅ Using corrected answer from feedback memory")
+            answer = correction_entry["correction"]
+            sources = ["Manual user input from a previous session"]
+        else:
+            with st.spinner("Thinking..."):
+                response = ask_ai(user_question)
+            answer = response["result"]
+            sources = response["source_documents"]
 
         # Save to history
         st.session_state.chat_history.append(
@@ -180,7 +190,7 @@ if __name__ == "__main__":
     # Display chat history
     if st.session_state.chat_history:
         st.markdown("### Conversation")
-        for qa_idx, entry in enumerate(st.session_state.chat_history[::-1], 1):
+        for qa_idx, entry in enumerate(st.session_state.chat_history, 1):
             question = entry["question"]
             answer = entry["result"]
             sources = entry["source_documents"]
@@ -188,19 +198,18 @@ if __name__ == "__main__":
             st.markdown(f"**Q{qa_idx}:** {question}")
             st.markdown(f"**A{qa_idx}:** {answer}")
 
-            sources_string = ""
+            sources_full_string = ""
 
             st.write("### Sources")
             for src_idx, doc in enumerate(sources[0:num_sources], 1):
                 st.markdown(f"*Source {src_idx}:*")
-                source_text = doc.page_content[:source_max_length]
+                source_text = sources[0] if isinstance(sources, list) else doc.page_content[:source_max_length]
+                sources_full_string += f"{source_text}\n"
                 st.write(source_text)
-
-                sources_string += f"{source_text}\n"
 
             st.write("### Feedback")
 
-            # Stable key per QA entry
+            # Stable keys per QA entry
             feedback_key = f"feedback_{qa_idx}"
             correction_key = f"correction_{qa_idx}"
             submit_key = f"submit_{qa_idx}"
@@ -223,7 +232,8 @@ if __name__ == "__main__":
 
             # Submit button per QA
             if st.button("Submit Feedback", key=submit_key):
-                feedback_handler.log_feedback(question, answer, sources_string, feedback_radio, correction_text)
+                feedback_handler.log_feedback(question, answer, sources_full_string, feedback_radio, correction_text)
+
                 if feedback_radio == "👎 No" and correction_text:
                     feedback_handler.save_correction(question, correction_text)
                 st.success("✅ Feedback saved!")
