@@ -71,6 +71,12 @@ def generate_summary(_chain) -> str:
 
     return answer
 
+@st.cache_resource
+def ask_ai(user_query: str) -> dict:
+    response = chain.invoke({"query": user_query})
+
+    return response
+
 
 def ingest_pdf() -> list[str]:
     temp_dir = tempfile.mkdtemp()
@@ -134,7 +140,7 @@ if __name__ == "__main__":
         st.subheader(summary)
 
     # User input box
-    user_query = st.text_input(
+    user_question = st.text_input(
         "Your question",
         placeholder="Type your question here and press Enter",
         key="input_box",
@@ -143,36 +149,37 @@ if __name__ == "__main__":
     # Initialize session state for chat history
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = []
-
-    sources = []
+    if "question_history" not in st.session_state:
+        st.session_state.question_history = []
 
     # Handle query
-    if user_query:
+    if user_question and user_question not in st.session_state.question_history:
         with st.spinner("Thinking..."):
-            response = chain.invoke({"query": user_query})
+            response = ask_ai(user_question)
         answer = response["result"]
         sources = response["source_documents"]
 
         # Save to history
         st.session_state.chat_history.append(
-            {"question": user_query,
+            {"question": user_question,
              "result": answer,
              "source_documents": sources,
              }
         )
+        st.session_state.question_history.append(user_question)
 
     # Display chat history
     if st.session_state.chat_history:
         st.markdown("### Conversation")
-        for i, entry in enumerate(st.session_state.chat_history[::-1], 1):
-            st.markdown(f"**Q{i}:** {entry["question"]}")
-            st.markdown(f"**A{i}:** {entry["result"]}")
-            st.markdown("---")
+        for qa_idx, entry in enumerate(st.session_state.chat_history[::-1], 1):
+            st.markdown(f"**Q{qa_idx}:** {entry["question"]}")
+            st.markdown(f"**A{qa_idx}:** {entry["result"]}")
+
+            sources = entry["source_documents"]
 
             st.write("### Sources")
-            for i, doc in enumerate(sources[0:num_sources], 1):
-                st.markdown(f"**Source {i}:**")
+            for src_idx, doc in enumerate(sources[0:num_sources], 1):
+                st.markdown(f"*Source {src_idx}:*")
                 st.write(doc.page_content[:source_max_length])
 
-                if "source" in doc.metadata:
-                    st.caption(f"From: {doc.metadata["source"]}")
+            st.markdown("---")
