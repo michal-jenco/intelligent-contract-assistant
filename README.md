@@ -46,3 +46,34 @@ README.md with setup instructions.
 
 
 MUST run python -m spacy download en_core_web_sm
+
+
+1️⃣ Feedback Log (CSV)
+
+Purpose: Keep a complete record of all user interactions, whether positive or negative.
+
+Contents: Question, answer, sources, user rating, corrections (if any), file hash, timestamp.
+
+Use cases:
+
+Analyze trends (e.g., which questions often get negative feedback).
+
+Audit for quality or debugging.
+
+Build datasets for future fine-tuning or improving retrieval.
+
+Essentially, it’s a historical dataset — never “overwrites” anything.
+
+2️⃣ Corrections Store (JSON)
+
+Purpose: Keep a current memory of corrections that can directly improve answers in future interactions.
+
+Contents: Mapping of normalized question → corrected answer, file hash, timestamp.
+
+Use cases:
+
+When the same question comes up again, the assistant can override the model output or inject the correction into retrieval.
+
+Acts as real-time learning memory, so the assistant “remembers” user fixes.
+
+This is a live store, always read before generating an answer.

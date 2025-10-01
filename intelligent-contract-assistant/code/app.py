@@ -7,6 +7,7 @@
 
 
 import streamlit as st
+import random
 from streamlit_pdf_viewer import pdf_viewer
 from dotenv import load_dotenv
 import os
@@ -20,6 +21,7 @@ from langchain.prompts import ChatPromptTemplate
 from pdf_ingest import PDFIngest
 from text_splitter import TextSplitter
 from vector_store import VectorStoreMaker
+from feedback_handler import FeedbackHandler
 
 
 
@@ -77,11 +79,13 @@ def ask_ai(user_query: str) -> dict:
 
     return response
 
-
-def ingest_pdf() -> list[str]:
+def create_tempfile(uploaded_file) -> str:
     temp_dir = tempfile.mkdtemp()
     input_file_path = os.path.join(temp_dir, uploaded_file.name)
 
+    return input_file_path
+
+def ingest_pdf(input_file_path) -> list[str]:
     with open(input_file_path, "wb") as f:
         f.write(uploaded_file.getvalue())
 
@@ -98,6 +102,9 @@ def ingest_pdf() -> list[str]:
 
     return chunks
 
+def get_random_key() -> int:
+    return random.getrandbits(64)
+
 
 if __name__ == "__main__":
     # Load API key from .env
@@ -108,6 +115,10 @@ if __name__ == "__main__":
     st.set_page_config(page_title="Intelligent Contract Assistant", layout="wide")
     st.title("Intelligent Contract Assistant")
     st.markdown("Ask questions about your PDF in natural language.")
+    # PDF displayer
+    container_pdf, container_chat = st.columns([50, 50])
+    # Query input
+    st.subheader("Ask questions about the document:")
 
     # Sidebar
     st.sidebar.header("Settings")
@@ -118,19 +129,15 @@ if __name__ == "__main__":
     uploaded_file = st.file_uploader("Upload a PDF document", type=["pdf"])
 
     if uploaded_file:
-        chunks = ingest_pdf()
+        input_file_path = create_tempfile(uploaded_file)
+        chunks = ingest_pdf(input_file_path)
+        feedback_handler = FeedbackHandler(input_file_path)
         chain = init_ai(chunks)
 
     else:
         st.warning("Please upload a PDF to get started.")
         chain = None
         exit()
-
-    # PDF displayer
-    container_pdf, container_chat = st.columns([50, 50])
-
-    # Query input
-    st.subheader("Ask questions about the document:")
 
     intro_query = f"Summarize for me what the provided document talks about."
 
@@ -151,6 +158,8 @@ if __name__ == "__main__":
         st.session_state.chat_history = []
     if "question_history" not in st.session_state:
         st.session_state.question_history = []
+    if "feedback" not in st.session_state:
+        st.session_state.feedback = []
 
     # Handle query
     if user_question and user_question not in st.session_state.question_history:
@@ -172,14 +181,51 @@ if __name__ == "__main__":
     if st.session_state.chat_history:
         st.markdown("### Conversation")
         for qa_idx, entry in enumerate(st.session_state.chat_history[::-1], 1):
-            st.markdown(f"**Q{qa_idx}:** {entry["question"]}")
-            st.markdown(f"**A{qa_idx}:** {entry["result"]}")
-
+            question = entry["question"]
+            answer = entry["result"]
             sources = entry["source_documents"]
+
+            st.markdown(f"**Q{qa_idx}:** {question}")
+            st.markdown(f"**A{qa_idx}:** {answer}")
+
+            sources_string = ""
 
             st.write("### Sources")
             for src_idx, doc in enumerate(sources[0:num_sources], 1):
                 st.markdown(f"*Source {src_idx}:*")
-                st.write(doc.page_content[:source_max_length])
+                source_text = doc.page_content[:source_max_length]
+                st.write(source_text)
+
+                sources_string += f"{source_text}\n"
+
+            st.write("### Feedback")
+
+            # Stable key per QA entry
+            feedback_key = f"feedback_{qa_idx}"
+            correction_key = f"correction_{qa_idx}"
+            submit_key = f"submit_{qa_idx}"
+
+            feedback_radio = st.radio(
+                "Was this answer helpful?",
+                ["👍 Yes", "👎 No"],
+                key=feedback_key,
+                horizontal=True,
+            )
+
+            # Show text area only if "No" is selected
+            if feedback_radio == "👎 No":
+                correction_text = st.text_area(
+                    "Provide the correct answer:",
+                    key=correction_key,
+                )
+            else:
+                correction_text = ""
+
+            # Submit button per QA
+            if st.button("Submit Feedback", key=submit_key):
+                feedback_handler.log_feedback(question, answer, sources_string, feedback_radio, correction_text)
+                if feedback_radio == "👎 No" and correction_text:
+                    feedback_handler.save_correction(question, correction_text)
+                st.success("✅ Feedback saved!")
 
             st.markdown("---")
