@@ -83,7 +83,6 @@ def ingest_pdf() -> list[str]:
     binary_data = uploaded_file.getvalue()
     pdf_viewer(input=binary_data, width=1000, height=700)
 
-    # Process document (non-UI logic)
     pdf_ingest = PDFIngest()
     text_splitter = TextSplitter()
 
@@ -104,13 +103,16 @@ if __name__ == "__main__":
     st.title("Intelligent Contract Assistant")
     st.markdown("Ask questions about your PDF in natural language.")
 
+    # Sidebar
+    st.sidebar.header("Settings")
+    num_sources = st.sidebar.slider("Number of Sources", min_value=1, max_value=5, value=1)
+    source_max_length = st.sidebar.slider("Source length trim", min_value=10, max_value=500, value=100)
+
     # File uploader
     uploaded_file = st.file_uploader("Upload a PDF document", type=["pdf"])
 
     if uploaded_file:
         chunks = ingest_pdf()
-
-        # Initialize AI only once (cached)
         chain = init_ai(chunks)
 
     else:
@@ -152,7 +154,12 @@ if __name__ == "__main__":
         sources = response["source_documents"]
 
         # Save to history
-        st.session_state.chat_history.append({"question": user_query, "result": answer})
+        st.session_state.chat_history.append(
+            {"question": user_query,
+             "result": answer,
+             "source_documents": sources,
+             }
+        )
 
     # Display chat history
     if st.session_state.chat_history:
@@ -163,8 +170,9 @@ if __name__ == "__main__":
             st.markdown("---")
 
             st.write("### Sources")
-            for i, doc in enumerate(sources):
+            for i, doc in enumerate(sources[0:num_sources], 1):
                 st.markdown(f"**Source {i}:**")
-                st.write(doc.page_content[:500])  # show only first 500 chars
+                st.write(doc.page_content[:source_max_length])
+
                 if "source" in doc.metadata:
                     st.caption(f"From: {doc.metadata["source"]}")
