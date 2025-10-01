@@ -9,7 +9,6 @@
 import streamlit as st
 import random
 
-from streamlit import feedback
 from streamlit_pdf_viewer import pdf_viewer
 from dotenv import load_dotenv
 import os
