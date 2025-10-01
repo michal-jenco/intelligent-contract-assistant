@@ -33,16 +33,16 @@ Add a named entity recognition (NER) step to extract key fields like parties, da
 
 Implement a feedback mechanism so the assistant can improve answers over multiple interactions.
 
-Show source text excerpts alongside answers.
+✅ Show source text excerpts alongside answers.
 
 ### 🎯 Deliverables:
-Python code (ideally in a GitHub repo).
+✅ Python code (ideally in a GitHub repo).
 
 README.md with setup instructions.
 
-Sample contract PDF and example queries.
+✅ Sample contract PDF and example queries.
 
-### Optional: a Streamlit or Flask app demoing the functionality.
+### ✅ Optional: a Streamlit or Flask app demoing the functionality.
 
 
 MUST run python -m spacy download en_core_web_sm
