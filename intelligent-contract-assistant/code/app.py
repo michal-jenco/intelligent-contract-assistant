@@ -6,13 +6,12 @@
 #  Copyright (c) 2025 Michal Jenčo
 
 
+import os
 import streamlit as st
-import random
-
 from streamlit_pdf_viewer import pdf_viewer
 from dotenv import load_dotenv
-import os
 import tempfile
+import pandas as pd
 
 from langchain.chains import create_retrieval_chain
 from langchain_openai import ChatOpenAI
@@ -23,6 +22,7 @@ from pdf_ingest import PDFIngest
 from text_splitter import TextSplitter
 from vector_store import VectorStoreMaker
 from feedback_handler import FeedbackHandler
+from ner import NamedEntityRecognizer
 
 
 
@@ -103,8 +103,20 @@ def ingest_pdf(input_file_path) -> list[str]:
 
     return chunks
 
-def get_random_key() -> int:
-    return random.getrandbits(64)
+@st.cache_resource
+def create_entity_dataframe(chunks):
+    ner = NamedEntityRecognizer()
+    entities = ner.get_entities("".join(chunks))
+
+    # Create a DataFrame for neat display of entities
+    df = pd.DataFrame(
+        [(ent.text, ent.label_, ent.start_char, ent.end_char)
+         for ent in entities
+         if ent.label_ in ["ORG", "PERSON"]],
+        columns=["Entity", "Type", "Start", "End"]
+    )
+
+    return df
 
 
 if __name__ == "__main__":
@@ -140,6 +152,14 @@ if __name__ == "__main__":
         chain = None
         exit()
 
+    entities_dataframe = create_entity_dataframe(chunks)
+
+    if not entities_dataframe.empty:
+        st.success(f"Found {len(entities_dataframe)} entities!")
+        st.dataframe(entities_dataframe, height=300)
+    else:
+        st.info("No entities found in the text.")
+
     intro_query = f"Summarize for me what the provided document talks about."
 
     if chain:
@@ -166,32 +186,32 @@ if __name__ == "__main__":
         )
         submitted = st.form_submit_button("Send")
 
-    # Handle query
-    if submitted and user_question and user_question not in st.session_state.question_history:
-        # Check corrections before retrieval
-        correction_entry = feedback_handler.check_corrections(user_question)
-
-        if correction_entry:
-            st.success("✅ Using corrected answer from feedback memory")
-            answer = correction_entry["correction"]
-            sources = ["Manual user input from a previous session"]
-        else:
-            with st.spinner("Thinking..."):
-                response = ask_ai(user_question)
-            answer = response["result"]
-            sources = response["source_documents"]
-
-        # Save to history
-        st.session_state.chat_history.append(
-            {"question": user_question,
-             "result": answer,
-             "source_documents": sources,
-             }
-        )
-        st.session_state.question_history.append(user_question)
-
     # Display chat history inside the container
     with chat_container:
+        # Handle query
+        if submitted and user_question and user_question not in st.session_state.question_history:
+            # Check corrections before retrieval
+            correction_entry = feedback_handler.check_corrections(user_question)
+
+            if correction_entry:
+                st.success("✅ Using corrected answer from feedback memory")
+                answer = correction_entry["correction"]
+                sources = ["Manual user input from a previous session"]
+            else:
+                with st.spinner("Thinking..."):
+                    response = ask_ai(user_question)
+                answer = response["result"]
+                sources = response["source_documents"]
+
+            # Save to history
+            st.session_state.chat_history.append(
+                {"question": user_question,
+                 "result": answer,
+                 "source_documents": sources,
+                 }
+            )
+            st.session_state.question_history.append(user_question)
+
         for qa_idx, entry in enumerate(st.session_state.chat_history, 1):
             question = entry["question"]
             answer = entry["result"]
